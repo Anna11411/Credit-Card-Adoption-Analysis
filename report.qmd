@@ -1,0 +1,84 @@
+---
+title: "Credit Card Adoption Analysis"
+author: "Anna Shaju"
+subtitle: "Exploratory analysis of a 240-row practice dataset"
+format:
+  html:
+    toc: true
+    code-fold: true
+execute:
+  warning: false
+  message: false
+---
+
+## Question and data
+
+Which customer characteristics are associated with accepting a credit card offer? This is a **dummy practice dataset**, not real customer data. The results describe associations in these 240 records; they do not establish causation or validate a production targeting model.
+
+```{r}
+#| label: setup
+library(readxl)
+library(ggplot2)
+d <- read_excel("data/credit_card_adoption_dummy_240.xlsx")
+stopifnot(nrow(d) == 240, !anyNA(d), !anyDuplicated(d$Customer_ID))
+d$Accepted <- factor(d$Credit_Card_Accepted, levels = c(0, 1), labels = c("No", "Yes"))
+d$City <- factor(d$City_Tier, levels = 1:3, labels = c("Metro", "Tier 2", "Tier 3"))
+```
+
+## Adoption rate
+
+```{r}
+#| label: fig-adoption
+#| fig-cap: "Acceptance counts in the practice dataset"
+ggplot(d, aes(Accepted, fill = Accepted)) +
+  geom_bar(width = .55) +
+  geom_text(stat = "count", aes(label = after_stat(count)), vjust = -0.5) +
+  scale_fill_manual(values = c("No" = "#CD5C5C", "Yes" = "#188977")) +
+  labs(x = NULL, y = "Customers") + theme_minimal() + theme(legend.position = "none")
+table(d$Accepted)
+```
+
+## Customer characteristics
+
+The plots show the distribution within each outcome group. Differences here are descriptive, and several variables may move together.
+
+```{r}
+#| label: fig-financial
+#| fig-cap: "Income and debt by response"
+par(mfrow = c(1, 2))
+boxplot(Income_Lakh ~ Accepted, data = d, xlab = "Accepted", ylab = "Income (lakh)", col = c("#CD5C5C", "#188977"))
+boxplot(Debt_to_Income ~ Accepted, data = d, xlab = "Accepted", ylab = "Debt to income", col = c("#CD5C5C", "#188977"))
+par(mfrow = c(1, 1))
+```
+
+```{r}
+#| label: fig-activity
+#| fig-cap: "Credit score and monthly transactions by response"
+par(mfrow = c(1, 2))
+boxplot(Credit_Score ~ Accepted, data = d, xlab = "Accepted", ylab = "Credit score", col = c("#CD5C5C", "#188977"))
+boxplot(Monthly_Transactions ~ Accepted, data = d, xlab = "Accepted", ylab = "Monthly transactions", col = c("#CD5C5C", "#188977"))
+par(mfrow = c(1, 1))
+```
+
+```{r}
+#| label: city-table
+city_counts <- table(d$City, d$Accepted)
+city_counts
+round(prop.table(city_counts, 1) * 100, 1)
+```
+
+## Exploratory logistic regression
+
+The model below is fit to all available rows to explore associations. Its fitted probabilities are **not an independent test** of predictive performance. The earlier script's accuracy and AUC used the fitting data, so they are deliberately omitted here.
+
+```{r}
+#| label: model
+model <- glm(Credit_Card_Accepted ~ Age + Income_Lakh + Credit_Score +
+               Debt_to_Income + Monthly_Transactions + City,
+             data = d, family = binomial())
+coef(summary(model))
+```
+
+## Interpretation and limits
+
+The dataset contains `r sum(d$Accepted == "Yes")` acceptances among `r nrow(d)` customers. The group plots and model can suggest variables for further study, but the data are synthetic and a reliable prediction claim would require a separate holdout dataset or carefully designed cross validation. Class imbalance means accuracy alone is insufficient. No campaign return or causal effect can be estimated from these data.
