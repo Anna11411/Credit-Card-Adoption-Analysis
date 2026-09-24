@@ -19,7 +19,7 @@ Which customer characteristics are associated with accepting a credit card offer
 #| label: setup
 library(readxl)
 library(ggplot2)
-d <- read_excel("data/credit_card_adoption_dummy_240.xlsx")
+d <- read_excel("credit_card_adoption_dummy_240.xlsx")
 stopifnot(nrow(d) == 240, !anyNA(d), !anyDuplicated(d$Customer_ID))
 d$Accepted <- factor(d$Credit_Card_Accepted, levels = c(0, 1), labels = c("No", "Yes"))
 d$City <- factor(d$City_Tier, levels = 1:3, labels = c("Metro", "Tier 2", "Tier 3"))
